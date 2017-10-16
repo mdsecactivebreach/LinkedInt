@@ -4,6 +4,12 @@ Original Scraper by Danny Chrastil (@DisK0nn3cT): https://github.com/DisK0nn3cT/
 
 Modified by @vysecurity
 
+# Requirements
+```
+pip install beautifulsoup4
+pip install thready
+```
+
 # Change Log
 
 [v0.1 BETA 12-07-2017]
