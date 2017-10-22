@@ -186,6 +186,8 @@ def get_search():
     print "[*] Fetching %i Pages" % pages
     print
 
+    jsondata = {'search': search, 'results':[]}
+
     for p in range(pages):
         # Request results for each page using the start offset
         if bCompany == False:
@@ -196,6 +198,7 @@ def get_search():
         r = requests.get(url, cookies=cookies, headers=headers)
         content = r.text.encode('UTF-8')
         content = json.loads(content)
+        # print content
         print "[*] Fetching page %i with %i results" % ((p),len(content['elements'][0]['elements']))
         for c in content['elements'][0]['elements']:
             if 'com.linkedin.voyager.search.SearchProfile' in c['hitInfo'] and c['hitInfo']['com.linkedin.voyager.search.SearchProfile']['headless'] == False:
@@ -274,6 +277,7 @@ def get_search():
                     "<a>" % (data_slug, data_picture, data_slug, name, email, data_occupation, data_location)
                 
                 csv.append('"%s","%s","%s","%s","%s", "%s"' % (data_firstname, data_lastname, name, email, data_occupation, data_location.replace(",",";")))
+                jsondata['results'].append({'link': data_slug, 'picture': data_picture, 'firstname': data_firstname, 'lastname': data_lastname, 'name': name, 'email': email, 'occupation': data_occupation, 'location': data_location})
                 foot = "</table></center>"
                 f = open('{}.html'.format(outfile), 'wb')
                 f.write(css)
@@ -284,9 +288,14 @@ def get_search():
                 f = open('{}.csv'.format(outfile), 'wb')
                 f.writelines('\n'.join(csv))
                 f.close()
+
             else:
                 print "[!] Headless profile found. Skipping"
         print
+        
+        # Write out JSON
+        with open('{}.json'.format(outfile), 'wb') as f:
+            json.dump(jsondata, f)
 
 def banner():
         with open('banner.txt', 'r') as f:
