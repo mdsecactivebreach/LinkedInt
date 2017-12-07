@@ -6,7 +6,12 @@
 # --- UI Updates
 # --- Constrain to company filters
 # --- Addition of Hunter for e-mail prediction
-
+# Modified by @fang0654
+# - Additions:
+# --- Added command line arguments for rest of options
+# --- Added more logic in name filtering to reduce the number of
+# ---    certificates and titles making it into email addresses
+# --- Used csv module to make sure CSV isn't UTF-16 (easier to grep)
 
 #!/usr/bin/python
 
@@ -25,6 +30,7 @@ import urllib2
 import string
 from bs4 import BeautifulSoup
 from thready import threaded
+import csv as csv_module
 
 reload(sys)
 sys.setdefaultencoding('utf-8')
@@ -33,48 +39,52 @@ sys.setdefaultencoding('utf-8')
 parser = argparse.ArgumentParser(description='Discovery LinkedIn')
 parser.add_argument('-u', '--keywords', help='Keywords to search')
 parser.add_argument('-o', '--output', help='Output file (do not include extentions)')
+parser.add_argument('-e', '--email', help='Domain used for email address')
+parser.add_argument('-c', '--company', help='Restrict to company filter')
+parser.add_argument('-i', '--id', help='Company ID to use')
+parser.add_argument('-f', '--format', help='Email format. "auto" to search Hunter')
 args = parser.parse_args()
 api_key = "" # Hunter API key
-username = "" 	# enter username here
-password = ""	# enter password here
+username = ""   # enter username here
+password = ""   # enter password here
 
 def login():
-	cookie_filename = "cookies.txt"
-	cookiejar = cookielib.MozillaCookieJar(cookie_filename)
-	opener = urllib2.build_opener(urllib2.HTTPRedirectHandler(),urllib2.HTTPHandler(debuglevel=0),urllib2.HTTPSHandler(debuglevel=0),urllib2.HTTPCookieProcessor(cookiejar))
-	page = loadPage(opener, "https://www.linkedin.com/")
-	parse = BeautifulSoup(page, "html.parser")
+    cookie_filename = "cookies.txt"
+    cookiejar = cookielib.MozillaCookieJar(cookie_filename)
+    opener = urllib2.build_opener(urllib2.HTTPRedirectHandler(),urllib2.HTTPHandler(debuglevel=0),urllib2.HTTPSHandler(debuglevel=0),urllib2.HTTPCookieProcessor(cookiejar))
+    page = loadPage(opener, "https://www.linkedin.com/")
+    parse = BeautifulSoup(page, "html.parser")
 
-	csrf = parse.find(id="loginCsrfParam-login")['value']
-	
-	login_data = urllib.urlencode({'session_key': username, 'session_password': password, 'loginCsrfParam': csrf})
-	page = loadPage(opener,"https://www.linkedin.com/uas/login-submit", login_data)
-	
-	parse = BeautifulSoup(page, "html.parser")
-	cookie = ""
-	
-	try:
-		cookie = cookiejar._cookies['.www.linkedin.com']['/']['li_at'].value
-	except:
-		sys.exit(0)
-	
-	cookiejar.save()
-	os.remove(cookie_filename)
-	return cookie
+    csrf = parse.find(id="loginCsrfParam-login")['value']
+    
+    login_data = urllib.urlencode({'session_key': username, 'session_password': password, 'loginCsrfParam': csrf})
+    page = loadPage(opener,"https://www.linkedin.com/uas/login-submit", login_data)
+    
+    parse = BeautifulSoup(page, "html.parser")
+    cookie = ""
+    
+    try:
+        cookie = cookiejar._cookies['.www.linkedin.com']['/']['li_at'].value
+    except:
+        sys.exit(0)
+    
+    cookiejar.save()
+    os.remove(cookie_filename)
+    return cookie
 
 def loadPage(client, url, data=None):
-	try:
-		response = client.open(url)
-	except:
-		print "[!] Cannot load main LinkedIn page"
-	try:
-		if data is not None:
-			response = client.open(url, data)
-		else:
-			response = client.open(url)
-		return ''.join(response.readlines())
-	except:
-		sys.exit(0)
+    try:
+        response = client.open(url)
+    except:
+        print "[!] Cannot load main LinkedIn page"
+    try:
+        if data is not None:
+            response = client.open(url, data)
+        else:
+            response = client.open(url)
+        return ''.join(response.readlines())
+    except:
+        sys.exit(0)
 
 def get_search():
 
@@ -121,36 +131,36 @@ def get_search():
 
 
     if bCompany:
-	    if bAuto:
-	        # Automatic
-	        # Grab from the URL 
-	        companyID = 0
-	        url = "https://www.linkedin.com/voyager/api/typeahead/hits?q=blended&query=%s" % search
-	        headers = {'Csrf-Token':'ajax:0397788525211216808', 'X-RestLi-Protocol-Version':'2.0.0'}
-	        cookies['JSESSIONID'] = 'ajax:0397788525211216808'
-	        r = requests.get(url, cookies=cookies, headers=headers)
-	        content = json.loads(r.text)
-	        firstID = 0
-	        for i in range(0,len(content['elements'])):
-	        	try:
-	        		companyID = content['elements'][i]['hitInfo']['com.linkedin.voyager.typeahead.TypeaheadCompany']['id']
-	        		if firstID == 0:
-	        			firstID = companyID
-	        		print "[Notice] Found company ID: %s" % companyID
-	        	except:
-	        		continue
-	        companyID = firstID
-	        if companyID == 0:
-	        	print "[WARNING] No valid company ID found in auto, please restart and find your own"
-	    else:
-	        # Don't auto, use the specified ID
-	        companyID = bSpecific
+        if bAuto:
+            # Automatic
+            # Grab from the URL 
+            companyID = 0
+            url = "https://www.linkedin.com/voyager/api/typeahead/hits?q=blended&query=%s" % search
+            headers = {'Csrf-Token':'ajax:0397788525211216808', 'X-RestLi-Protocol-Version':'2.0.0'}
+            cookies['JSESSIONID'] = 'ajax:0397788525211216808'
+            r = requests.get(url, cookies=cookies, headers=headers)
+            content = json.loads(r.text)
+            firstID = 0
+            for i in range(0,len(content['elements'])):
+                try:
+                    companyID = content['elements'][i]['hitInfo']['com.linkedin.voyager.typeahead.TypeaheadCompany']['id']
+                    if firstID == 0:
+                        firstID = companyID
+                    print "[Notice] Found company ID: %s" % companyID
+                except:
+                    continue
+            companyID = firstID
+            if companyID == 0:
+                print "[WARNING] No valid company ID found in auto, please restart and find your own"
+        else:
+            # Don't auto, use the specified ID
+            companyID = bSpecific
 
-	    print
-	    
-	    print "[*] Using company ID: %s" % companyID
+        print
+        
+        print "[*] Using company ID: %s" % companyID
 
-	# Fetch the initial page to get results/page counts
+    # Fetch the initial page to get results/page counts
     if bCompany == False:
         url = "https://www.linkedin.com/voyager/api/search/cluster?count=40&guides=List()&keywords=%s&origin=OTHER&q=guided&start=0" % search
     else:
@@ -169,15 +179,15 @@ def get_search():
     pages = data_total / 40
 
     if pages == 0:
-    	pages = 1
+        pages = 1
 
     if data_total % 40 == 0:
         # Becuase we count 0... Subtract a page if there are no left over results on the last page
         pages = pages - 1 
 
     if pages == 0: 
-    	print "[!] Try to use quotes in the search name"
-    	sys.exit(0)
+        print "[!] Try to use quotes in the search name"
+        sys.exit(0)
     
     print "[*] %i Results Found" % data_total
     if data_total > 1000:
@@ -185,7 +195,9 @@ def get_search():
         print "[*] LinkedIn only allows 1000 results. Refine keywords to capture all data"
     print "[*] Fetching %i Pages" % pages
     print
-
+    csvfile = open('{}.csv'.format(outfile), 'wb')
+    csvwriter = csv_module.writer(csvfile, delimiter=',', quotechar='"', quoting=csv_module.QUOTE_MINIMAL)
+    
     for p in range(pages):
         # Request results for each page using the start offset
         if bCompany == False:
@@ -198,6 +210,7 @@ def get_search():
         content = json.loads(content)
         print "[*] Fetching page %i with %i results" % ((p),len(content['elements'][0]['elements']))
         for c in content['elements'][0]['elements']:
+            
             if 'com.linkedin.voyager.search.SearchProfile' in c['hitInfo'] and c['hitInfo']['com.linkedin.voyager.search.SearchProfile']['headless'] == False:
                 try:
                     data_industry = c['hitInfo']['com.linkedin.voyager.search.SearchProfile']['industry']
@@ -215,8 +228,14 @@ def get_search():
                     data_picture = ""
 
                 # incase the last name is multi part, we will split it down
+                # Also trying to strip out anything after a comma, and any
+                # word that is all caps, since those are probably certs
+                # (CPA, CFA, CISSP, etc, etc, etc)
 
-                parts = data_lastname.split()
+                parts = []
+                for p in data_lastname.split(',')[0].split(' '):
+                    if p.upper() != p:
+                        parts.append(p)
 
                 name = data_firstname + " " + data_lastname
                 fname = ""
@@ -224,18 +243,18 @@ def get_search():
                 lname = ""
 
                 if len(parts) == 1:
-                    fname = data_firstname
+                    fname = data_firstname.split(' ')[0]
                     mname = '?'
                     lname = parts[0]
                 elif len(parts) == 2:
-                    fname = data_firstname
+                    fname = data_firstname.split(' ')[0]
                     mname = parts[0]
                     lname = parts[1]
                 elif len(parts) >= 3:
-                    fname = data_firstname
+                    fname = data_firstname.split(' ')[0]
                     lname = parts[0]
                 else:
-                    fname = data_firstname
+                    fname = data_firstname.split(' ')[0]
                     lname = '?'
 
                 fname = re.sub('[^A-Za-z]+', '', fname)
@@ -261,7 +280,7 @@ def get_search():
                 if prefix == 'fmlast':
                     user = '{}{}{}'.format(fname[0], mname[0], lname)
                 if prefix == 'lastfirst':
-                	user = '{}{}'.format(lname, fname)
+                    user = '{}{}'.format(lname, fname)
 
                 email = '{}@{}'.format(user, suffix)
 
@@ -281,12 +300,13 @@ def get_search():
                 f.write(body)
                 f.write(foot)
                 f.close()
-                f = open('{}.csv'.format(outfile), 'wb')
-                f.writelines('\n'.join(csv))
-                f.close()
+                csvwriter.writerow([data_firstname, data_lastname, name, email, data_occupation, data_location.replace(",",";")])
+                
+                
             else:
                 print "[!] Headless profile found. Skipping"
         print
+    csvfile.close()
 
 def banner():
         with open('banner.txt', 'r') as f:
@@ -299,8 +319,8 @@ def banner():
 
 def authenticate():
     try:
-    	a = login()
-    	print a
+        a = login()
+        print a
         session = a
         if len(session) == 0:
             sys.exit("[!] Unable to login to LinkedIn.com")
@@ -317,8 +337,13 @@ if __name__ == '__main__':
     print 
     outfile = args.output if args.output!=None else raw_input("[*] Enter filename for output (exclude file extension)\n")
     print 
+    
     while True:
-        bCompany = raw_input("[*] Filter by Company? (Y/N): \n")
+        if args.company:
+            bCompany = args.company
+            args.company = None
+        else:
+            bCompany = raw_input("[*] Filter by Company? (Y/N): \n")
         if bCompany.lower() == "y" or bCompany.lower() == "n":
             break
         else:
@@ -337,29 +362,41 @@ if __name__ == '__main__':
     print
 
     if bCompany:
-	    while True:
-	        bSpecific = raw_input("[*] Specify a Company ID (Provide ID or leave blank to automate): \n")
-	        if bSpecific != "":
-	            bAuto = False
-	            if bSpecific != 0:
-	                try:
-	                    int(bSpecific)
-	                    break
-	                except:
-	                    print "[!] Incorrect choice, the ID either has to be a number or blank"
-	                
-	            else:
-	                print "[!] Incorrect choice, the ID either has to be a number or blank"
-	        else:
-	            bAuto = True
-	            break
+        while True:
+            if args.id:
+                if args.id == "auto":
+                    bSpecific = ""
+                else:
+                    bSpecific = args.id
+                args.id = None
+            else:
+                bSpecific = raw_input("[*] Specify a Company ID (Provide ID or leave blank to automate): \n")
+        
+            if bSpecific != "":
+                bAuto = False
+                if bSpecific != 0:
+                    try:
+                        int(bSpecific)
+                        break
+                    except:
+                        print "[!] Incorrect choice, the ID either has to be a number or blank"
+                    
+                else:
+                    print "[!] Incorrect choice, the ID either has to be a number or blank"
+            else:
+                bAuto = True
+                break
 
     print
 
     
     while True:
-        suffix = raw_input("[*] Enter e-mail domain suffix (eg. contoso.com): \n")
-        suffix = suffix.lower()
+        if args.email:
+            suffix = args.email.lower()
+            args.email = None
+        else:
+            suffix = raw_input("[*] Enter e-mail domain suffix (eg. contoso.com): \n")
+            suffix = suffix.lower()
         if "." in suffix:
             break
         else:
@@ -368,8 +405,12 @@ if __name__ == '__main__':
     print
 
     while True:
-        prefix = raw_input("[*] Select a prefix for e-mail generation (auto,full,firstlast,firstmlast,flast,first.last,fmlast,lastfirst): \n")
-        prefix = prefix.lower()
+        if args.format:
+            prefix = args.format.lower()
+            args.format = None
+        else:    
+            prefix = raw_input("[*] Select a prefix for e-mail generation (auto,full,firstlast,firstmlast,flast,first.last,fmlast,lastfirst): \n")
+            prefix = prefix.lower()
         print
         if prefix == "full" or prefix == "firstlast" or prefix == "firstmlast" or prefix == "flast" or prefix =="first" or prefix == "first.last" or prefix == "fmlast" or prefix == "lastfirst":
             break
