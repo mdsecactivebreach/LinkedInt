@@ -38,6 +38,10 @@ api_key = "" # Hunter API key
 username = "" 	# enter username here
 password = ""	# enter password here
 
+if api_key == "" or username == "" or password == "":
+        print "[!] Oops, you did not enter your api_key, username, or password in LinkedInt.py"
+        sys.exit(0)
+
 def login():
 	cookie_filename = "cookies.txt"
 	cookiejar = cookielib.MozillaCookieJar(cookie_filename)
