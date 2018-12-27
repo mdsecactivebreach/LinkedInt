@@ -10,6 +10,7 @@
 
 #!/usr/bin/python
 
+import socket
 import sys
 import re
 import time
@@ -17,6 +18,8 @@ import requests
 import subprocess
 import json
 import argparse
+import smtplib
+import dns.resolver
 import cookielib
 import os
 import urllib
@@ -276,8 +279,8 @@ def get_search():
                     "<td>%s</td>" \
                     "<td>%s</td>" \
                     "<a>" % (data_slug, data_picture, data_slug, name, email, data_occupation, data_location)
-                
-                csv.append('"%s","%s","%s","%s","%s", "%s"' % (data_firstname, data_lastname, name, email, data_occupation, data_location.replace(",",";")))
+                if validateEmail(suffix,email):
+                    csv.append('"%s","%s","%s","%s","%s", "%s"' % (data_firstname, data_lastname, name, email, data_occupation, data_location.replace(",",";")))
                 foot = "</table></center>"
                 f = open('{}.html'.format(outfile), 'wb')
                 f.write(css)
@@ -291,6 +294,58 @@ def get_search():
             else:
                 print "[!] Headless profile found. Skipping"
         print
+
+def validateEmail(domain,email):
+    """
+    Functionality and Code was adapted from the SimplyEmail Project: https://github.com/SimplySecurity/SimplyEmail
+    """
+    #Setting Variables
+    UserAgent = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
+    mxhost = ""
+    FinalList = []
+    hostname = socket.gethostname()
+    
+    #Getting MX Record
+    MXRecord = []
+    try:
+        print ' [*] Attempting to resolve MX records!'
+        answers = dns.resolver.query(domain, 'MX')
+        for rdata in answers:
+            data = {
+                "Host": str(rdata.exchange),
+                "Pref": int(rdata.preference),
+            }
+            MXRecord.append(data)
+        # Now find the lowest value in the pref
+        Newlist = sorted(MXRecord, key=lambda k: k['Pref'])
+        # Set the MX record
+        mxhost = Newlist[0]
+        val = ' [*] MX Host: ' + str(mxhost['Host'])
+        print val
+    except Exception as e:
+        error = ' [!] Failed to get MX record: ' + str(e)
+        print error
+
+    #Checking Email Address
+    socket.setdefaulttimeout(10)
+    server = smtplib.SMTP(timeout=10)
+    server.set_debuglevel(0)
+    try:
+        print " [*] Checking for valid email: " + str(email)
+        server.connect(mxhost['Host'])
+        server.helo(hostname)
+        server.mail('email@gmail.com')
+        code,message = server.rcpt(str(email))
+        server.quit()
+    except Exception as e:
+        print e
+    
+    if code == 250:
+        #print "Valid Email Address Found: %s" % email
+        return True
+    else:
+        #print "Email not valid %s" % email
+        return False
 
 def banner():
         with open('banner.txt', 'r') as f:
