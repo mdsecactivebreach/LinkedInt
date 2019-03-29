@@ -218,7 +218,8 @@ def get_search():
                 try:
                     data_picture = "https://media.licdn.com/mpr/mpr/shrinknp_400_400%s" % c['hitInfo']['com.linkedin.voyager.search.SearchProfile']['miniProfile']['picture']['com.linkedin.voyager.common.MediaProcessorImage']['id']
                 except:
-                    print "[*] No picture found for %s %s, %s" % (data_firstname, data_lastname, data_occupation)
+                    # when value, such as firstname, contains unicode, this would fail without .encode("utf-8")
+                    print "[*] No picture found for %s %s, %s" % (data_firstname.encode('utf-8'), data_lastname.encode('utf-8'), data_occupation.encode('utf-8'))
                     data_picture = ""
 
                 # incase the last name is multi part, we will split it down
@@ -269,6 +270,8 @@ def get_search():
                     user = '{}{}{}'.format(fname[0], mname[0], lname)
                 if prefix == 'lastfirst':
                 	user = '{}{}'.format(lname, fname)
+                if prefix == 'first':
+                    user = '{}'.format(fname)
 
                 email = '{}@{}'.format(user, suffix)
 
@@ -337,15 +340,18 @@ def validateEmail(domain,email):
         server.mail('email@gmail.com')
         code,message = server.rcpt(str(email))
         server.quit()
+
+        # avoid "code" is not initialized when connection refused only for some search
+        if code == 250:
+            #print "Valid Email Address Found: %s" % email
+            return True
+        else:
+            #print "Email not valid %s" % email
+            return False
+
     except Exception as e:
         print e
     
-    if code == 250:
-        #print "Valid Email Address Found: %s" % email
-        return True
-    else:
-        #print "Email not valid %s" % email
-        return False
 
 def banner():
         with open('banner.txt', 'r') as f:
