@@ -49,10 +49,10 @@ def login():
 	cookie_filename = "cookies.txt"
 	cookiejar = cookielib.MozillaCookieJar(cookie_filename)
 	opener = urllib2.build_opener(urllib2.HTTPRedirectHandler(),urllib2.HTTPHandler(debuglevel=0),urllib2.HTTPSHandler(debuglevel=0),urllib2.HTTPCookieProcessor(cookiejar))
-	page = loadPage(opener, "https://www.linkedin.com/")
+	page = loadPage(opener, "https://www.linkedin.com/uas/login")
 	parse = BeautifulSoup(page, "html.parser")
 
-	csrf = parse.find(id="loginCsrfParam-login")['value']
+	csrf = parse.find("input", {"name": "loginCsrfParam"})['value']
 	
 	login_data = urllib.urlencode({'session_key': username, 'session_password': password, 'loginCsrfParam': csrf})
 	page = loadPage(opener,"https://www.linkedin.com/uas/login-submit", login_data)
