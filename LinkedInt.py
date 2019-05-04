@@ -46,42 +46,30 @@ if api_key == "" or username == "" or password == "":
         sys.exit(0)
 
 def login():
-	cookie_filename = "cookies.txt"
-	cookiejar = cookielib.MozillaCookieJar(cookie_filename)
-	opener = urllib2.build_opener(urllib2.HTTPRedirectHandler(),urllib2.HTTPHandler(debuglevel=0),urllib2.HTTPSHandler(debuglevel=0),urllib2.HTTPCookieProcessor(cookiejar))
-	page = loadPage(opener, "https://www.linkedin.com/")
-	parse = BeautifulSoup(page, "html.parser")
+    URL = 'https://www.linkedin.com'
+    s = requests.Session()
+    rv = s.get(URL + '/uas/login?trk=guest_homepage-basic_nav-header-signin')
+    p = BeautifulSoup(rv.content, "html.parser")
+    
+    csrf = p.find(attrs={'name' : 'loginCsrfParam'})['value']
+    csrf_token = p.find(attrs={'name':'csrfToken'})['value']
+    sid_str = p.find(attrs={'name':'sIdString'})['value']
+    
+    postdata = {'csrfToken':csrf_token,
+         'loginCsrfParam':csrf,
+         'sIdString':sid_str,
+         'session_key':username,
+         'session_password':password,
+        }
+    rv = s.post(URL + '/checkpoint/lg/login-submit', data=postdata)
+    try:
+        cookie = requests.utils.dict_from_cookiejar(s.cookies)
+        cookie = cookie['li_at']
+    except:
+        print "[!] Cannot log in"
+        sys.exit(0)
+    return cookie
 
-	csrf = parse.find(id="loginCsrfParam-login")['value']
-	
-	login_data = urllib.urlencode({'session_key': username, 'session_password': password, 'loginCsrfParam': csrf})
-	page = loadPage(opener,"https://www.linkedin.com/uas/login-submit", login_data)
-	
-	parse = BeautifulSoup(page, "html.parser")
-	cookie = ""
-	
-	try:
-		cookie = cookiejar._cookies['.www.linkedin.com']['/']['li_at'].value
-	except:
-		sys.exit(0)
-	
-	cookiejar.save()
-	os.remove(cookie_filename)
-	return cookie
-
-def loadPage(client, url, data=None):
-	try:
-		response = client.open(url)
-	except:
-		print "[!] Cannot load main LinkedIn page"
-	try:
-		if data is not None:
-			response = client.open(url, data)
-		else:
-			response = client.open(url)
-		return ''.join(response.readlines())
-	except:
-		sys.exit(0)
 
 def get_search():
 
