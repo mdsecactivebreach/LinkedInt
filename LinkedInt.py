@@ -330,6 +330,7 @@ def validateEmail(domain,email):
     socket.setdefaulttimeout(10)
     server = smtplib.SMTP(timeout=10)
     server.set_debuglevel(0)
+    code = 0
     try:
         print " [*] Checking for valid email: " + str(email)
         server.connect(mxhost['Host'])
