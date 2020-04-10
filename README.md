@@ -4,6 +4,8 @@ Original Scraper by Danny Chrastil (@DisK0nn3cT): https://github.com/DisK0nn3cT/
 
 Modified by @vysecurity
 
+Modified again by @fang0654 for inclusion into Armory (https://github.com/depthsecurity/armory)
+
 # Requirements
 ```
 pip install beautifulsoup4
@@ -11,6 +13,11 @@ pip install thready
 ```
 
 # Change Log
+[v0.2 Charlie 1-08-2020]
+* All of the necessary options can be passed as parameters
+* Works in Python 3
+* Fixed the images
+* Lots of other random stuff
 
 [v0.1 BETA 12-07-2017]
 Additions:
