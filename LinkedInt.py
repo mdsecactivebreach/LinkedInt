@@ -51,7 +51,7 @@ args = parser.parse_args()
 api_key = args.apikey # Hunter API key
 username = args.login # enter username here
 password = args.password   # enter password here
-proxies = {'https':'127.0.0.1:8080'}
+proxies = {} #{'https':'127.0.0.1:8080'}
 def login():
     # cookie_filename = "cookies.txt"
 
