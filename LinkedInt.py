@@ -30,7 +30,7 @@ import csv as csv_module
 import pdb
 import ssl
 import importlib
-
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 
 
@@ -52,6 +52,9 @@ api_key = args.apikey # Hunter API key
 username = args.login # enter username here
 password = args.password   # enter password here
 proxies = {} #{'https':'127.0.0.1:8080'}
+# silence all url warnings
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
 def login():
     # cookie_filename = "cookies.txt"
 
@@ -200,7 +203,7 @@ def get_search():
         url = "https://www.linkedin.com/voyager/api/search/cluster?count=40&guides=List(v->PEOPLE,facetCurrentCompany->%s,title->%s)&origin=OTHER&q=guided&start=0" % (companyID, search)
     
     # url = urllib.parse.quote(url)
-    print(url)
+    # print(url)
     
     headers = {'Csrf-Token':'ajax:0397788525211216808', 'X-RestLi-Protocol-Version':'2.0.0'}
     cookies['JSESSIONID'] = 'ajax:0397788525211216808'
@@ -260,7 +263,10 @@ def get_search():
                 data_lastname = c['hitInfo']['com.linkedin.voyager.search.SearchProfile']['miniProfile']['lastName']
                 data_slug = "https://www.linkedin.com/in/%s" % c['hitInfo']['com.linkedin.voyager.search.SearchProfile']['miniProfile']['publicIdentifier']
                 data_occupation = c['hitInfo']['com.linkedin.voyager.search.SearchProfile']['miniProfile']['occupation']
-                data_location = c['hitInfo']['com.linkedin.voyager.search.SearchProfile']['location']
+                try:
+                    data_location = c['hitInfo']['com.linkedin.voyager.search.SearchProfile']['location']
+                except:
+                    data_location = ""
                 # pdb.set_trace()
                 try:
                     data_picture = c['hitInfo']['com.linkedin.voyager.search.SearchProfile']['miniProfile']['picture']['com.linkedin.common.VectorImage']['rootUrl'] + [d['fileIdentifyingUrlPathSegment'] for d in c['hitInfo']['com.linkedin.voyager.search.SearchProfile']['miniProfile']['picture']['com.linkedin.common.VectorImage']['artifacts'] if '400' in d['fileIdentifyingUrlPathSegment']][0]
@@ -372,11 +378,10 @@ def banner():
 def authenticate():
     try:
         a = login()
-        print(a)
         session = a
         if len(session) == 0:
             sys.exit("[!] Unable to login to LinkedIn.com")
-        print("[*] Obtained new session: %s" % session)
+        print("[*] Obtained new session")
         cookies = dict(li_at=session)
     except Exception as e:
         sys.exit("[!] Could not authenticate to linkedin. %s" % e)
@@ -385,7 +390,7 @@ def authenticate():
 if __name__ == '__main__':
     banner()
     # Prompt user for data variables
-    search = args.keywords if args.keywords!=None else input("[*] Enter search Keywords (use quotes for more percise results)\n")
+    search = args.keywords if args.keywords!=None else input("[*] Enter search Keywords (use quotes for more precise results)\n")
     print() 
     outfile = args.output if args.output!=None else input("[*] Enter filename for output (exclude file extension)\n")
     print() 
