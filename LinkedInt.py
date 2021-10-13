@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # LinkedInt
 # Scrapes LinkedIn without using LinkedIn API
@@ -42,48 +42,26 @@ parser.add_argument('-e', '--email', help='Domain used for email address')
 parser.add_argument('-c', '--company', help='Restrict to company filter', action="store_true")
 parser.add_argument('-i', '--id', help='Company ID to use')
 parser.add_argument('-f', '--format', help='Email format. "auto" to search Hunter')
-parser.add_argument('--login', help="Login for LinkedIn", required=True)
-parser.add_argument('--password', help="Password for LinkedIn", required=True)
-parser.add_argument('--apikey', help="API Key for HunterIO", required=True)
-
+parser.add_argument('--login', help="Login for LinkedIn",)
+parser.add_argument('--password', help="Password for LinkedIn",)
+parser.add_argument('--apikey', help="API Key for HunterIO",)
+parser.add_argument('--li_at', help="Provide li_at cookie (session cookie) instead of login")
 args = parser.parse_args()
+
+if not (args.login and args.password) or (args.li_at):
+    print(f"Error: Either login/password or li_at cookie are required.")
+    sys.exit(1)
 
 api_key = args.apikey # Hunter API key
 username = args.login # enter username here
 password = args.password   # enter password here
+
 proxies = {} #{'https':'127.0.0.1:8080'}
 # silence all url warnings
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 def login():
-    # cookie_filename = "cookies.txt"
 
-    # pdb.set_trace()
-    # cookiejar = http.cookiejar.MozillaCookieJar(cookie_filename)
-    # opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler(),urllib.request.HTTPHandler(debuglevel=0),urllib.request.HTTPSHandler(debuglevel=0),urllib.request.HTTPCookieProcessor(cookiejar))
-    # # page = loadPage(opener, "https://www.linkedin.com/")
-    # # pdb.set_trace()
-    # # parse = BeautifulSoup(page, "html.parser")
-
-    # # # csrf = parse.find(id="loginCsrfParam-login")['value']
-    # # csrf = cookiejar._cookies['.linkedin.com']['/']['bcookie'].value.split('&')[1]
-
-    # # login_data = urllib.urlencode({'session_key': username, 'session_password': password, 'loginCsrfParam': csrf})
-    # # page = loadPage(opener,"https://www.linkedin.com/uas/login-submit", login_data)
-    
-    # page = loadPage(opener, "https://www.linkedin.com/uas/login")
-    # parse = BeautifulSoup(page, "html.parser")
-    # #csrf = parse.find(id="loginCsrfParam")['value']
-    # for link in parse.find_all('input'):
-    #         name = link.get('name')
-    #         if name == 'loginCsrfParam':
-    #                 csrf = link.get('value')
-
-    # login_data = urllib.parse.urlencode({'session_key': username, 'session_password': password, 'loginCsrfParam': csrf})
-    # page = loadPage(opener,"https://www.linkedin.com/checkpoint/lg/login-submit", login_data)
-
-    # parse = BeautifulSoup(page, "html.parser")
-    # cookie = ""
     
     s = requests.Session()
     res = s.get('https://www.linkedin.com/uas/login')
@@ -377,8 +355,7 @@ def banner():
 
 def authenticate():
     try:
-        a = login()
-        session = a
+        session = login()
         if len(session) == 0:
             sys.exit("[!] Unable to login to LinkedIn.com")
         print("[*] Obtained new session")
@@ -513,7 +490,11 @@ if __name__ == '__main__':
         search = urllib.parse.quote(search)
     else:
         search = urllib.parse.quote_plus(search)
-    cookies = authenticate()
+    
+    if args.li_at:
+        cookies = {'li_at': args.li_at}
+    else:
+        cookies = authenticate()
   
     
     # Initialize Scraping
