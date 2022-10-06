@@ -5,6 +5,7 @@ Original Scraper by Danny Chrastil (@DisK0nn3cT): https://github.com/DisK0nn3cT/
 Modified by @vysecurity
 
 # Requirements
+
 ```
 pip install -r requirements.txt
 ```
@@ -19,14 +20,14 @@ Additions:
 
 [v0.2 BETA 06-10-2022]
 * Ported to Python 3
-* Added requirements.txt
+* Added `requirements.txt`
 * Refactored the code to a re-usable class and modularised the arg parsing
 * Options are now given on the command line so that it can be run without a user present
 * Fixed a bug in paging calculation that caused a 403
 * Removed Location field as it's not exposed by the API
 * Added LinkedIn ID field
-* Added a 'cookies' module which can be used to bypass Captcha by first logging in with Chrome and then dumping cookies (Windows only)
-* Added option to supply a verification code if one is required on login (when --interative is used)
+* Added a `cookies` module which can be used to bypass Captcha by first logging in with Chrome and then dumping cookies (Windows only)
+* Added option to supply a verification code if one is required on login (when `--interative` is used)
 * Make email validation optional
 * Optionally provide custom user-agent
 
