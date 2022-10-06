@@ -25,7 +25,7 @@ import smtplib
 import dns.resolver
 import urllib3
 
-PROXY_SETTING = {"http": "http://localhost:8081", "https": "http://localhost:8081"}
+PROXY_SETTING = {} #{"http": "http://localhost:8081", "https": "http://localhost:8081"}
 
 SSL_VERIFY = False
 
@@ -409,10 +409,10 @@ class Scraper():
                         "<td>%s</td>" \
                         "<td>%s</td>" \
                         "<td>%s</td>" \
-                        "<a>" % (data_slug, data_picture, data_slug, name, email, data_occupation, data_id)
+                        "<a>" % (data_slug, data_picture, data_slug, name, email, data_occupation, data_id.split(":")[3])
 
                     if self.validate and validate_email(self.suffix, email):
-                        csv.append(b'"%s","%s","%s","%s","%s", "%s"' % (data_firstname, data_lastname, name, email, data_occupation, data_id.split(":")[3]))
+                        csv.append(b'"%s","%s","%s","%s","%s", "%s"' % (data_firstname, data_lastname, name, email, data_occupation, data_id))
 
                     foot = "</table></center>"
                     with open('{}.html'.format(self.outfile), 'wb') as f:
