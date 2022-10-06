@@ -346,7 +346,7 @@ class Scraper():
                     data_lastname = c['hitInfo']['com.linkedin.voyager.search.SearchProfile']['miniProfile']['lastName']
                     data_slug = "https://www.linkedin.com/in/%s" % c['hitInfo']['com.linkedin.voyager.search.SearchProfile']['miniProfile']['publicIdentifier']
                     data_occupation = c['hitInfo']['com.linkedin.voyager.search.SearchProfile']['miniProfile']['occupation']
-                    data_id = c['hitInfo']['com.linkedin.voyager.search.SearchProfile']['backendUrn']
+                    data_id = c['hitInfo']['com.linkedin.voyager.search.SearchProfile']['backendUrn'].split(":")[3]
 
                     try:
                         data_picture = "https://media.licdn.com/mpr/mpr/shrinknp_400_400%s" % c['hitInfo']['com.linkedin.voyager.search.SearchProfile']['miniProfile']['picture']['com.linkedin.voyager.common.MediaProcessorImage']['id']
@@ -409,7 +409,7 @@ class Scraper():
                         "<td>%s</td>" \
                         "<td>%s</td>" \
                         "<td>%s</td>" \
-                        "<a>" % (data_slug, data_picture, data_slug, name, email, data_occupation, data_id.split(":")[3])
+                        "<a>" % (data_slug, data_picture, data_slug, name, email, data_occupation, data_id)
 
                     if self.validate and validate_email(self.suffix, email):
                         csv.append(b'"%s","%s","%s","%s","%s", "%s"' % (data_firstname, data_lastname, name, email, data_occupation, data_id))
